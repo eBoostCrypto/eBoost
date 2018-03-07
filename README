@@ -45,7 +45,7 @@ See http://opensource.org/licenses/MIT/ for more information.
 Development process
 -------------------
 
-Futher Developers work is handled by Jim Blasko (jimblasko@yahoo.com) and the eBoost Team. 
+Future development work is managed by Jim Blasko (jimblasko@yahoo.com) and the eBoost Team. 
 
 If it is a simple/trivial/non-controversial change, then one of the eBoost
 development team members simply pulls it.
