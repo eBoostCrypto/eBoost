@@ -1,0 +1,90 @@
+sudo: required
+dist: trusty
+os: linux
+language: cpp
+cache:
+  directories:
+  - depends/built
+  - depends/sdk-sources
+  - $HOME/.ccache
+env:
+  global:
+  - MAKEJOBS=-j3
+  - CCACHE_SIZE=100M
+  - CCACHE_TEMPDIR=/tmp/.ccache-temp
+  - CCACHE_COMPRESS=1
+  - DEPS_URL=http://178.62.1.119/
+  matrix:
+  - BUILD=win32 HOST=i686-w64-mingw32   DISTNAME=i686-win   PACKAGES="mingw-w64 g++-mingw-w64"
+    BITS=32 MAKEFILE=makefile.linux-mingw BOOST_LIB_SUFFIX="-mt-s" OUTPUT_SUFFIX=".exe"
+    QMAKEOPTS="-xplatform win32-g++" BOOST_THREAD_LIB_SUFFIX="_win32-mt-s"
+  - BUILD=win64 HOST=x86_64-w64-mingw32 DISTNAME=x86_64-win PACKAGES="mingw-w64 g++-mingw-w64"
+    BITS=64 MAKEFILE=makefile.linux-mingw BOOST_LIB_SUFFIX="-mt-s" OUTPUT_SUFFIX=".exe"
+    QMAKEOPTS="-xplatform win32-g++" BOOST_THREAD_LIB_SUFFIX="_win32-mt-s"
+  - BUILD=macosx HOST=x86_64-apple-darwin14 DISTNAME=x86_64-darwin PACKAGES="clang
+    llvm-dev genisoimage"  BOOST_LIB_SUFFIX="-mt-s" BOOST_THREAD_LIB_SUFFIX="-mt-s"
+    DEPS=blackcoin-deps-osx.tar.xz EXTRADEPS=osxcross.tar.xz QMAKE_CXXFLAGS="-I/home/vagrant/deps/SDK/MacOSX10.9/usr/include
+    -DBOOST_HAS_INT128=1" QMAKEOPTS="-xplatform macx-clang-linux" OTOOL=${HOST}-otool
+    INSTALLNAMETOOL=${HOST}-install_name_tool STRIP=${HOST}-strip
+  - BUILD=linux64 MAKEFILE=makefile.unix  BOOST_LIB_SUFFIX="-mt" BITS=64
+before_install:
+- sudo apt-get -qq update
+install:
+- if [ "$DEPS" == "" ]; then export DEPS=blackcoin-deps-${BUILD}.tar.xz; fi
+- export INDIR=$HOME/inputs
+- export DEPSDIR=$HOME/deps${BITS}
+- export PATH=$DEPSDIR/host/bin:$DEPSDIR:$DEPSDIR/bin:$PATH
+- export QTDIR=$TRAVIS_BUILD_DIR
+- sudo apt-get install build-essential $PACKAGES
+- mkdir -p $INDIR $DEPSDIR
+- cd $INDIR && wget $DEPS_URL/$DEPS `[ "$EXTRADEPS" != "" ] && echo $DEPS_URL/$EXTRADEPS`
+- cd $DEPSDIR && tar xf $INDIR/$DEPS
+- if [ "$EXTRADEPS" != "" ]; then tar xf $INDIR/$EXTRADEPS; fi
+script:
+- ls -la $HOME/deps${BITS}/include
+- ls -la $HOME/deps${BITS}/lib
+- echo 'Build Daemon' && echo -en 'travis_fold:start:script.daemon\\r'
+- cd $TRAVIS_BUILD_DIR/src
+- if [ "$MAKEFILE" != "" ]; then make $MAKEJOBS -f $MAKEFILE HOST="$HOST" STATIC=1
+  OPENSSL_INCLUDE_PATH="$DEPSDIR/include" OPENSSL_LIB_PATH="$DEPSDIR/lib" DEPSDIR="$DEPSDIR"
+  CURDIR="$TRAVIS_BUILD_DIR/src" USE_UPNP=1 BOOST_LIB_SUFFIX="$BOOST_LIB_SUFFIX" DEBUGFLAGS=
+  && install -s eBoostd${OUTPUT_SUFFIX} $INDIR/; fi
+- ls -la
+- echo -en 'travis_fold:end:script.daemon\\r'
+- echo 'Build Qt' && echo -en 'travis_fold:start:script.qt\\r'
+- cd $TRAVIS_BUILD_DIR
+- qmake $QMAKEOPTS QMAKE_LRELEASE="$DEPSDIR/host/bin/lrelease" INCLUDEPATH="$DEPSDIR/include"
+  LIBS="-L$DEPSDIR/lib" BOOST_LIB_SUFFIX="$BOOST_LIB_SUFFIX" BOOST_THREAD_LIB_SUFFIX="$BOOST_THREAD_LIB_SUFFIX"
+  RELEASE=1 DEFINES=BOOST_THREAD_USE_LIB QMAKE_CXXFLAGS="-frandom-seed=black $QMAKE_CXXFLAGS"
+  USE_BUILD_INFO=1 USE_O3=1
+- if [[ "$BUILD" =~ "linux" ]]; then sed -i 's^,-whole-archive -lleveldb -Wl,^,-lleveldb,^'
+  Makefile; fi
+- make $MAKEJOBS
+- ls -la
+- echo -en 'travis_fold:end:script.qt\\r'
+- echo 'Package executables' && echo -en 'travis_fold:start:script.package\\r'
+- mkdir upload;
+- if [ -d release ]; then cp release/eBoost-qt${OUTPUT_SUFFIX} upload/eBoost-qt${OUTPUT_SUFFIX};
+  fi
+- if [ -d eBoost-Qt.app ]; then contrib/macdeploy/createdmg; mv eBoost.macosx.dmg
+  upload/eBoost.dmg; fi
+- if [ -f src/eBoostd${OUTPUT_SUFFIX} ]; then cp src/eBoostd${OUTPUT_SUFFIX} upload/eBoostd${OUTPUT_SUFFIX};
+  fi
+- if [ -f eBoost-qt ]; then cp eBoost-qt upload/eBoost-qt; fi
+- ls -la upload
+- zip eBoost-${BUILD}.zip upload/* -r
+- export UPLOAD=$(pwd)/eBoost-${BUILD}.zip
+- echo -en 'travis_fold:end:script.package\\r'
+after_script:
+- echo $TRAVIS_COMMIT_RANGE
+- echo $TRAVIS_COMMIT_LOG
+notifications:
+  irc: chat.freenode.net#multicoin-co
+deploy:
+  skip_cleanup: true
+  provider: releases
+  api_key:
+    secure: wEy06AfrVil/iJq1sVmiM57190F9k6XONjaf4JloBwH/DgfISCc/8AOkUZO2QYyNjzSmFe8qhXvS5BoIpIXR1WmnSPEjvzwbBBNEjELUsAtumoOTrS/kW9yRzZW4glKFYl6/P8+UxpjMwZEpzdzYT6TCfD7wmAoll+C9ODxCTRCTs0XR0vBDVnhmKLyXH3Ft+hwhjKiPgjO+qWCoMna653vxHTPxyxoqqiIuUtCj7gugEyq2WYEtrrtTQCXoxsM5xzUgwEg/MWLR8vnCF/QHwzsfJ6j6ytEZ7ybCuZ1NxRJG6vAwv8/1rgSqB1cct0rdUNN5MJ5y1H73gbXWsNreAm/CLRqMZyaMYdQBtekN1Niv99sSQl3YQm1H9UEv5yEneRF+2yrq/nbxeTzcVEaENXQDweGyt5zMh8ocIZROG5jRVRUKCPSE2w/cznboua7ipVujGf6laNpCo04O4SNobix0zJFXt80iOdzl8fzLsOADWjKRG4l3Wl7nit1u3EvhDyKVdCps5G3/RC+dO3IpJqzkIx613XQQ18krjDRnzVdeI8kP72Ng7sWRts6oqFfJkdGQc4CwYS8TWBHf3NJFAen4fd24JDbfn9y+mwCZFEXhO/7VuMBAVMXh+6Io00DDtVFfHoumUj8RGuN1VVZKXszllUvPttOtCwF+ToIEJkM=
+  file: $UPLOAD
+  on:
+    repo: Cryptosio/eBoost 
