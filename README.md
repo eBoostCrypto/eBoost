@@ -4,11 +4,12 @@
 EBOOST (eBST)
 ===========
 
-mockit.gg
+[eboost.fun](eboost.fun)
+
+[mockit.gg](mockit.gg)
 
 What is eBoost?
 ----------------
-
 eBoost is an experimental in game digital currency created for Mockit.gg users. 
 eBoost allows for instant payments to anyone, anywhere in the world. 
 eBoost was built on Litcoin core with modifications.
@@ -16,12 +17,13 @@ eBoost uses peer-to-peer technology to operate with no central authority.
 Managing transactions and issuing money are carried
 out collectively by the network. eBoost Core is the name of the source
 software which enables the use of this currency.
+Originally forked from [Litecoin](https://github.com/litecoin-project/litecoin)
 
 For more information about eBoost, visit mockit.gg
 
 Specs
 -----
-POW Scrypt Cryptocurrency with ACP
+PoW Scrypt Cryptocurrency with ACP
 
 100,000,000 Premined Coins  
 
@@ -76,7 +78,7 @@ addnode=node2.minercity.org
 addnode=134.119.177.16
 ```
 
-**compiling for debugging**
+**Compiling for debugging**
 
 Run configure with the --enable-debug option, then make. Or run configure with
 CXXFLAGS="-g -ggdb -O0" or whatever debug flags you need.
