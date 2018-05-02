@@ -69,6 +69,12 @@ Translations may be converted to eBoost periodically.
 
 Development tips and tricks
 ---------------------------
+**Official Nodes**
+```
+addnode=node1.minercity.org
+addnode=node2.minercity.org
+addnode=134.119.177.16
+```
 
 **compiling for debugging**
 
