@@ -69,7 +69,7 @@ pull from Transifex would automatically overwrite them again.
 
 Translations may be converted to eBoost periodically.
 
-Development tips and tricks
+Development tips, tricks, and FAQs
 ---------------------------
 **Official Nodes**
 ```
@@ -101,3 +101,8 @@ eBoost Core is a multithreaded application, and deadlocks or other multithreadin
 can be very difficult to track down. Compiling with -DDEBUG_LOCKORDER (configure
 CXXFLAGS="-DDEBUG_LOCKORDER -g") inserts run-time checks to keep track of which locks
 are held, and adds warnings to the debug.log file if inconsistencies are detected.
+
+
+**Are there any changes to the serialization of blocks or transactions?**
+
+No. eBoost maintains the serialization of LTC to ensure easy compatibility with existing projects. There are also no changes to all of the following: the proof of work hash function (scrypt), block id hash function, transaction id hash function, cryptographic signature algorithm, the script language.
